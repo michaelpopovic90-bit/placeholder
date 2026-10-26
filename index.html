@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>michaelpopovic.se - Spänningsregulator</title>
+    <style>
+        :root {
+            --glow-color: #00ffcc;
+            --shake-intensity: 0px;
+        }
+        body {
+            background-color: #0d0e12;
+            color: #e2e8f0;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            transition: background-color 0.5s;
+        }
+        .control-panel {
+            background: #1a1c23;
+            border: 3px solid #2d313f;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            animation: shake var(--shake-speed, 0s) infinite linear;
+        }
+        h1 {
+            color: #ffffff;
+            font-size: 1.5rem;
+            margin-top: 0;
+            letter-spacing: 2px;
+            border-bottom: 2px solid #2d313f;
+            padding-bottom: 10px;
+        }
+        .display {
+            background-color: #050608;
+            border: 2px solid #2d313f;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 1.2rem;
+            color: var(--glow-color);
+            text-shadow: 0 0 10px var(--glow-color);
+            font-weight: bold;
+            transition: color 0.2s, text-shadow 0.2s;
+        }
+        .transformer-core {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 25px 0;
+            height: 80px;
+        }
+        .coil {
+            width: 40px;
+            height: 70px;
+            background: repeating-linear-gradient(0deg, #b87333, #b87333 5px, #8b4513 5px, #8b4513 10px);
+            border-radius: 4px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .iron-core {
+            width: 100px;
+            height: 50px;
+            background-color: #4a4e5d;
+            border: 4px solid #2d313f;
+            border-radius: 4px;
+        }
+        .slider-container {
+            margin-top: 25px;
+        }
+        input[type=range] {
+            width: 100%;
+            height: 8px;
+            background: #2d313f;
+            border-radius: 5px;
+            outline: none;
+            accent-color: var(--glow-color);
+        }
+        .warning-msg {
+            color: #ff3e3e;
+            font-weight: bold;
+            min-height: 20px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        /* Blixt-effekt för skärmen */
+        .lightning {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 999;
+        }
+        @keyframes shake {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            20% { transform: translate(calc(-1 * var(--shake-intensity)), var(--shake-intensity)) rotate(-0.5deg); }
+            40% { transform: translate(var(--shake-intensity), calc(-1 * var(--shake-intensity))) rotate(0.5deg); }
+            60% { transform: translate(calc(-1 * var(--shake-intensity)), calc(-1 * var(--shake-intensity))) rotate(-0.5deg); }
+            80% { transform: translate(var(--shake-intensity), var(--shake-intensity)) rotate(0.5deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        @keyframes flash {
+            0% { opacity: 0; } 50% { opacity: 0.8; } 100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="lightning" id="lightning"></div>
+
+<div class="control-panel" id="panel">
+    <h1>MICHAELPOPOVIC.SE</h1>
+    <div class="display" id="display">Nätspänning: 230 V</div>
+    
+    <div class="transformer-core">
+        <div class="coil" id="primCoil" style="box-shadow: 0 0 10px rgba(184,115,51,0.5);">Pr</div>
+        <div class="iron-core"></div>
+        <div class="coil" id="secCoil">Sec</div>
+    </div>
+    
+    <div class="slider-container">
+        <label for="voltageSlider" style="font-size: 0.85rem; letter-spacing: 1px;">JUSTERA SEKUNDÄRVARV (N₂)</label>
+        <input type="range" id="voltageSlider" min="0" max="200" value="50">
+    </div>
+    
+    <div class="warning-msg" id="warning">Systemet stabilt. 50 Hz transformering aktiv.</div>
+</div>
+
+<script>
+    const slider = document.getElementById('voltageSlider');
+    const display = document.getElementById('display');
+    const panel = document.getElementById('panel');
+    const warning = document.getElementById('warning');
+    const secCoil = document.getElementById('secCoil');
+    const lightning = document.getElementById('lightning');
+    const body = document.body;
+
+    slider.addEventListener('input', () => {
+        const val = parseInt(slider.value);
+        
+        // Beräkna en fejkad spänningsutväxling baserat på slidern
+        // 50 är baslinjen (230V)
+        let voltage = Math.round((val / 50) * 230);
+        
+        if (val === 0) {
+            // Strömlöst fall
+            display.innerText = "Nätspänning: 0 V";
+            display.style.setProperty('--glow-color', '#444');
+            warning.innerText = "STRÖMAVBROTT. Transformatorn dog i tomgång.";
+            warning.style.color = "#777";
+            secCoil.style.boxShadow = "none";
+            secCoil.style.transform = "scale(1)";
+            panel.style.setProperty('--shake-speed', '0s');
+            body.style.backgroundColor = "#050507";
+        } 
+        else if (val > 0 && val <= 75) {
+            // Normalt och stabilt intervall
+            display.innerText = `Nätspänning: ${voltage} V`;
+            display.style.setProperty('--glow-color', '#00ffcc');
+            warning.innerText = "Systemet stabilt. 50 Hz transformering aktiv.";
+            warning.style.color = "#00ffcc";
+            body.style.backgroundColor = "#0d0e12";
+            
+            // Lite glöd på sekundärspolen
+            secCoil.style.boxShadow = `0 0 ${val/2}px #b87333`;
+            secCoil.style.transform = `scale(${1 + (val/200)})`;
+            panel.style.setProperty('--shake-speed', '0s');
+        } 
+        else if (val > 75 && val <= 160) {
+            // Överbelastning börjar
+            display.innerText = `VARNING: ${voltage} V`;
+            display.style.setProperty('--glow-color', '#ffaa00');
+            warning.innerText = "VARNING: Magnetostriktion kritisk. Järnkärnan mättas!";
+            warning.style.color = "#ffaa00";
+            body.style.backgroundColor = "#1a1105";
+
+            // Sekundärspolen börjar bli överhettad (rödaktig glöd)
+            secCoil.style.boxShadow = `0 0 ${val/2}px #ff5500`;
+            
+            // Börja skaka panelen
+            let shake = (val - 75) / 15;
+            panel.style.setProperty('--shake-intensity', `${shake}px`);
+            panel.style.setProperty('--shake-speed', '0.08s');
+            
+            // Slumpmässig liten ljusblixt då och då vid högre spänning
+            if (val > 130 && Math.random() > 0.85) {
+                triggerFlash();
+            }
+        } 
+        else {
+            // Totalt haveri / katastrofzon
+            display.innerText = `KATASTROF: ${voltage} V`;
+            display.style.setProperty('--glow-color', '#ff003c');
+            warning.innerText = "KRITISKT ÖVERSLAG! MICHAELPOPOVIC.SE SMÄLTER!!";
+            warning.style.color = "#ff003c";
+            body.style.backgroundColor = "#2a050c";
+
+            secCoil.style.boxShadow = `0 0 ${val}px #ff0000`;
+            
+            let shake = (val - 75) / 8;
+            panel.style.setProperty('--shake-intensity', `${shake}px`);
+            panel.style.setProperty('--shake-speed', '0.03s');
+            
+            // Frekventa tunga blixtar
+            if (Math.random() > 0.4) {
+                triggerFlash();
+            }
+        }
+    });
+
+    function triggerFlash() {
+        lightning.style.animation = 'none';
+        lightning.offsetHeight; // Trigger reflow för att starta om animationen
+        lightning.style.animation = 'flash 0.15s ease-out';
+    }
+</script>
+</body>
+</html>
