@@ -3,229 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>michaelpopovic.se // Sidan kunde inte hittas</title>
+    <title>michaelpopovic.se // Falstad Circuit Simulator</title>
     <style>
-        body {
-            background-color: #ffffff;
-            color: #333333;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        body, html {
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
-            user-select: none;
+            background-color: #000000;
         }
-        .error-container {
-            text-align: left;
-            width: 90%;
-            max-width: 600px;
-            margin-bottom: 20px;
-        }
-        h1 { font-size: 1.6rem; color: #202124; margin-bottom: 5px; font-weight: 500; }
-        p { font-size: 0.9rem; color: #5f6368; margin-top: 0; margin-bottom: 25px; }
-        
-        /* Spelplanen */
-        #gameCanvas {
-            border-bottom: 2px solid #5f6368;
-            background-color: #ffffff;
-            cursor: pointer;
-        }
-        .instructions {
-            font-size: 0.8rem;
-            color: #70757a;
-            margin-top: 15px;
-            text-align: center;
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
     </style>
 </head>
 <body>
 
-<div class="error-container">
-    <h1>Sidan kan inte visas</h1>
-    <p>Det verkar som att michaelpopovic.se bygger något nytt. Prova att hoppa under tiden.</p>
-    
-    <canvas id="gameCanvas" width="600" height="150"></canvas>
-    <div class="instructions">Tryck på BLANKSTEG eller KLICKA på skärmen för att hoppa</div>
-</div>
+    <!-- Bäddar in Falstad med en förladdad krets (AC-källa + Transformator + Last) -->
+    <iframe src="https://falstad.com"></iframe>
 
-<script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-
-    // Anpassa för mobilskärmar om det behövs
-    function resize() {
-        if (window.innerWidth < 620) {
-            canvas.style.width = "100%";
-            canvas.style.height = "auto";
-        }
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    // Spelvariabler
-    let score = 0;
-    let highScore = 0;
-    let gameSpeed = 5;
-    let isGameOver = false;
-    let gameStarted = false;
-
-    // Dino
-    const dino = {
-        x: 50,
-        y: 110,
-        width: 20,
-        height: 40,
-        gravity: 0.6,
-        jumpForce: -10,
-        velocity: 0,
-        isJumping: false,
-        draw() {
-            ctx.fillStyle = "#5f6368";
-            // Kropp
-            ctx.fillRect(this.x, this.y, this.width, this.height - 10);
-            // Huvud / Nos
-            ctx.fillRect(this.x + 5, this.y - 10, 20, 12);
-            // Öga
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(this.x + 10, this.y - 8, 3, 3);
-            // Ben
-            ctx.fillStyle = "#5f6368";
-            ctx.fillRect(this.x + 2, this.y + 30, 4, 10);
-            ctx.fillRect(this.x + 12, this.y + 30, 4, 10);
-        },
-        jump() {
-            if (!this.isJumping) {
-                this.velocity = this.jumpForce;
-                this.isJumping = true;
-            }
-        },
-        update() {
-            this.velocity += this.gravity;
-            this.y += this.velocity;
-
-            // Marknivå kollision
-            if (this.y > 110) {
-                this.y = 110;
-                this.velocity = 0;
-                this.isJumping = false;
-            }
-        }
-    };
-
-    // Hinder (Kaktusar)
-    let obstacles = [];
-    function spawnObstacle() {
-        if (Math.random() > 0.985 && obstacles.length < 2) {
-            let lastObstacleX = obstacles.length > 0 ? obstacles[obstacles.length - 1].x : 600;
-            if (600 - lastObstacleX > 150) {
-                obstacles.push({
-                    x: 600,
-                    y: 120,
-                    width: 15,
-                    height: 30,
-                    draw() {
-                        ctx.fillStyle = "#5f6368";
-                        ctx.fillRect(this.x, this.y, this.width, this.height);
-                        ctx.fillRect(this.x - 4, this.y + 6, 4, 12);
-                        ctx.fillRect(this.x + this.width, this.y + 10, 4, 10);
-                    }
-                });
-            }
-        }
-    }
-
-    // Inputhantering
-    function handleAction() {
-        if (isGameOver) {
-            resetGame();
-        } else {
-            dino.jump();
-            gameStarted = true;
-        }
-    }
-
-    window.addEventListener("keydown", (e) => {
-        if (e.code === "Space") {
-            e.preventDefault();
-            handleAction();
-        }
-    });
-    canvas.addEventListener("click", handleAction);
-    canvas.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        handleAction();
-    });
-
-    function resetGame() {
-        obstacles = [];
-        score = 0;
-        gameSpeed = 5;
-        isGameOver = false;
-        dino.y = 110;
-        dino.velocity = 0;
-        dino.isJumping = false;
-    }
-
-    // Huvudloop
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Rita poäng
-        ctx.fillStyle = "#5f6368";
-        ctx.font = "14px monospace";
-        ctx.fillText(`HI ${String(highScore).padStart(5, '0')}  ${String(Math.floor(score)).padStart(5, '0')}`, 480, 25);
-
-        dino.update();
-        dino.draw();
-
-        if (gameStarted && !isGameOver) {
-            score += 0.15;
-            if (Math.floor(score) % 100 === 0 && gameSpeed < 12) {
-                gameSpeed += 0.02; // Öka farten gradvis
-            }
-
-            spawnObstacle();
-
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].x -= gameSpeed;
-                obstacles[i].draw();
-
-                // Kollisionsdetektering
-                if (
-                    dino.x < obstacles[i].x + obstacles[i].width &&
-                    dino.x + dino.width > obstacles[i].x &&
-                    dino.y < obstacles[i].y + obstacles[i].height &&
-                    dino.y + dino.height > obstacles[i].y
-                ) {
-                    isGameOver = true;
-                    if (Math.floor(score) > highScore) {
-                        highScore = Math.floor(score);
-                    }
-                }
-
-                // Ta bort hinder utanför skärmen
-                if (obstacles[i].x + obstacles[i].width < 0) {
-                    obstacles.splice(i, 1);
-                }
-            }
-        }
-
-        if (isGameOver) {
-            ctx.fillStyle = "#5f6368";
-            ctx.font = "bold 16px sans-serif";
-            ctx.fillText("GAME OVER", 250, 75);
-            ctx.font = "12px sans-serif";
-            ctx.fillText("Klicka eller tryck Space för att starta om", 195, 100);
-        }
-
-        requestAnimationFrame(animate);
-    }
-
-    animate();
-</script>
 </body>
 </html>
