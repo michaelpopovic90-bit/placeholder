@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>michaelpopovic.se // HIGH VOLTAGE CORE</title>
+    <title>michaelpopovic.se // PLASMA CORE</title>
     <style>
         :root {
             --theme-color: #00f0ff;
@@ -12,14 +12,12 @@
         }
         body {
             background-color: var(--bg-color);
-            color: #e2e8f0;
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
             margin: 0;
             overflow: hidden;
             height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-end;
             user-select: none;
             transition: background-color 0.5s;
         }
@@ -30,83 +28,13 @@
             z-index: 1;
             pointer-events: none;
         }
-        .ui-wrapper {
+        .control-section {
             position: relative;
             z-index: 2;
             width: 90%;
-            max-width: 500px;
-            background: rgba(10, 15, 30, 0.85);
-            border: 2px solid var(--theme-color);
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 0 30px var(--theme-glow), inset 0 0 15px rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
+            max-width: 400px;
+            margin-bottom: 40px;
             text-align: center;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-        h1 {
-            font-family: monospace;
-            font-size: 1.8rem;
-            letter-spacing: 4px;
-            margin: 0 0 5px 0;
-            text-transform: uppercase;
-            color: #ffffff;
-            text-shadow: 0 0 10px var(--theme-glow);
-        }
-        .subtitle {
-            font-size: 0.85rem;
-            color: #8a99ad;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-bottom: 25px;
-        }
-        .status-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        .status-box {
-            background: rgba(5, 8, 20, 0.9);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 12px;
-            font-family: monospace;
-        }
-        .status-label {
-            font-size: 0.75rem;
-            color: #64748b;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-        .status-value {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: var(--theme-color);
-            text-shadow: 0 0 5px var(--theme-glow);
-        }
-        .interactive-zone {
-            width: 120px;
-            height: 120px;
-            margin: 20px auto;
-            border-radius: 50%;
-            background: radial-gradient(circle, var(--theme-color) 0%, rgba(0,0,0,0.2) 70%);
-            position: relative;
-            cursor: pointer;
-            box-shadow: 0 0 20px var(--theme-glow);
-            transition: transform 0.1s;
-        }
-        .interactive-zone::before {
-            content: '';
-            position: absolute;
-            top: -10px; left: -10px; right: -10px; bottom: -10px;
-            border: 2px dashed var(--theme-color);
-            border-radius: 50%;
-            animation: rotate 20s linear infinite;
-            opacity: 0.5;
-        }
-        .control-section {
-            margin-top: 25px;
         }
         input[type=range] {
             width: 100%;
@@ -116,51 +44,22 @@
             outline: none;
             accent-color: var(--theme-color);
             cursor: pointer;
+            box-shadow: 0 0 10px var(--theme-glow);
         }
-        .instructions {
-            font-size: 0.8rem;
-            color: #64748b;
-            margin-top: 15px;
-            font-style: italic;
-        }
-        @keyframes rotate { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
 <canvas id="lightningCanvas"></canvas>
 
-<div class="ui-wrapper" id="uiBox">
-    <h1>michaelpopovic.se</h1>
-    <div class="subtitle">Elektromagnetisk Matris v2.4</div>
-    
-    <div class="status-container">
-        <div class="status-box">
-            <div class="status-label">Kärntemperatur</div>
-            <div class="status-value" id="tempVal">38°C</div>
-        </div>
-        <div class="status-box">
-            <div class="status-label">Frekvensutgång</div>
-            <div class="status-value" id="voltVal">12.5 kV</div>
-        </div>
-    </div>
-    
-    <div class="interactive-zone" id="coreNode"></div>
-    
-    <div class="control-section">
-        <input type="range" id="powerSlider" min="1" max="100" value="25">
-        <div class="instructions" id="infoText">Dra i reglaget för att excitera spolen. Rör vid eller klicka på skärmen för att jorda blixtar.</div>
-    </div>
+<div class="control-section">
+    <input type="range" id="powerSlider" min="1" max="100" value="25">
 </div>
 
 <script>
     const canvas = document.getElementById('lightningCanvas');
     const ctx = canvas.getContext('2d');
     const slider = document.getElementById('powerSlider');
-    const coreNode = document.getElementById('coreNode');
-    const tempVal = document.getElementById('tempVal');
-    const voltVal = document.getElementById('voltVal');
-    const infoText = document.getElementById('infoText');
 
     let mouseX = null;
     let mouseY = null;
@@ -211,9 +110,8 @@
     function loop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        const rect = coreNode.getBoundingClientRect();
-        const coreX = rect.left + rect.width / 2;
-        const coreY = rect.top + rect.height / 2;
+        const coreX = canvas.width / 2;
+        const coreY = canvas.height / 2;
         const power = parseInt(slider.value);
 
         if (power > 80) {
@@ -222,7 +120,6 @@
                 document.documentElement.style.setProperty('--theme-color', '#ff0055');
                 document.documentElement.style.setProperty('--theme-glow', 'rgba(255, 0, 85, 0.5)');
                 document.documentElement.style.setProperty('--bg-color', '#1c0309');
-                infoText.innerText = "SÄNK STRÖMMEN! PLASMAN HÅLLER PÅ ATT BRYTA IGENOM SKÖLDEN!";
             }
         } else {
             if (isOverload) {
@@ -230,13 +127,8 @@
                 document.documentElement.style.setProperty('--theme-color', '#00f0ff');
                 document.documentElement.style.setProperty('--theme-glow', 'rgba(0, 240, 255, 0.4)');
                 document.documentElement.style.setProperty('--bg-color', '#060814');
-                infoText.innerText = "Dra i reglaget för att excitera spolen. Rör vid eller klicka på skärmen för att jorda blixtar.";
             }
         }
-
-        tempVal.innerText = `${Math.round(30 + (power * 1.4))}°C`;
-        voltVal.innerText = `${(power * 12.5).toFixed(1)} kV`;
-        coreNode.style.transform = `scale(${1 + (power/200)})`;
 
         ctx.shadowBlur = isOverload ? 20 : 10;
         ctx.shadowColor = isOverload ? '#ff0055' : '#00f0ff';
@@ -256,7 +148,7 @@
         for (let i = 0; i < extraBlixtar; i++) {
             if (Math.random() > 0.6) {
                 let angle = Math.random() * Math.PI * 2;
-                let distance = 150 + Math.random() * (canvas.width / 2);
+                let distance = 100 + Math.random() * (canvas.width / 2);
                 let targetX = coreX + Math.cos(angle) * distance;
                 let targetY = coreY + Math.sin(angle) * distance;
                 
