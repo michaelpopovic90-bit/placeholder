@@ -3,165 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>michaelpopovic.se // PLASMA CORE</title>
+    <title>michaelpopovic.se // Sidan kunde inte hittas</title>
     <style>
-        :root {
-            --theme-color: #00f0ff;
-            --theme-glow: rgba(0, 240, 255, 0.4);
-            --bg-color: #060814;
-        }
         body {
-            background-color: var(--bg-color);
+            background-color: #ffffff;
+            color: #333333;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            overflow: hidden;
-            height: 100vh;
+            padding: 0;
             display: flex;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
-            align-items: flex-end;
+            height: 100vh;
+            overflow: hidden;
             user-select: none;
-            transition: background-color 0.5s;
         }
-        canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 1;
-            pointer-events: none;
-        }
-        .control-section {
-            position: relative;
-            z-index: 2;
+        .error-container {
+            text-align: left;
             width: 90%;
-            max-width: 400px;
-            margin-bottom: 40px;
-            text-align: center;
+            max-width: 600px;
+            margin-bottom: 20px;
         }
-        input[type=range] {
-            width: 100%;
-            height: 10px;
-            background: #1e293b;
-            border-radius: 99px;
-            outline: none;
-            accent-color: var(--theme-color);
+        h1 { font-size: 1.6rem; color: #202124; margin-bottom: 5px; font-weight: 500; }
+        p { font-size: 0.9rem; color: #5f6368; margin-top: 0; margin-bottom: 25px; }
+        
+        /* Spelplanen */
+        #gameCanvas {
+            border-bottom: 2px solid #5f6368;
+            background-color: #ffffff;
             cursor: pointer;
-            box-shadow: 0 0 10px var(--theme-glow);
+        }
+        .instructions {
+            font-size: 0.8rem;
+            color: #70757a;
+            margin-top: 15px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-<canvas id="lightningCanvas"></canvas>
-
-<div class="control-section">
-    <input type="range" id="powerSlider" min="1" max="100" value="25">
+<div class="error-container">
+    <h1>Sidan kan inte visas</h1>
+    <p>Det verkar som att michaelpopovic.se bygger något nytt. Prova att hoppa under tiden.</p>
+    
+    <canvas id="gameCanvas" width="600" height="150"></canvas>
+    <div class="instructions">Tryck på BLANKSTEG eller KLICKA på skärmen för att hoppa</div>
 </div>
 
 <script>
-    const canvas = document.getElementById('lightningCanvas');
-    const ctx = canvas.getContext('2d');
-    const slider = document.getElementById('powerSlider');
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
 
-    let mouseX = null;
-    let mouseY = null;
-    let isOverload = false;
-
-    function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+    // Anpassa för mobilskärmar om det behövs
+    function resize() {
+        if (window.innerWidth < 620) {
+            canvas.style.width = "100%";
+            canvas.style.height = "auto";
+        }
     }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+    window.addEventListener('resize', resize);
+    resize();
 
-    window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
-    window.addEventListener('mouseout', () => { mouseX = null; mouseY = null; });
-    
-    window.addEventListener('touchmove', (e) => { 
-        if(e.touches.length > 0) {
-            mouseX = e.touches[0].clientX; 
-            mouseY = e.touches[0].clientY; 
+    // Spelvariabler
+    let score = 0;
+    let highScore = 0;
+    let gameSpeed = 5;
+    let isGameOver = false;
+    let gameStarted = false;
+
+    // Dino
+    const dino = {
+        x: 50,
+        y: 110,
+        width: 20,
+        height: 40,
+        gravity: 0.6,
+        jumpForce: -10,
+        velocity: 0,
+        isJumping: false,
+        draw() {
+            ctx.fillStyle = "#5f6368";
+            // Kropp
+            ctx.fillRect(this.x, this.y, this.width, this.height - 10);
+            // Huvud / Nos
+            ctx.fillRect(this.x + 5, this.y - 10, 20, 12);
+            // Öga
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(this.x + 10, this.y - 8, 3, 3);
+            // Ben
+            ctx.fillStyle = "#5f6368";
+            ctx.fillRect(this.x + 2, this.y + 30, 4, 10);
+            ctx.fillRect(this.x + 12, this.y + 30, 4, 10);
+        },
+        jump() {
+            if (!this.isJumping) {
+                this.velocity = this.jumpForce;
+                this.isJumping = true;
+            }
+        },
+        update() {
+            this.velocity += this.gravity;
+            this.y += this.velocity;
+
+            // Marknivå kollision
+            if (this.y > 110) {
+                this.y = 110;
+                this.velocity = 0;
+                this.isJumping = false;
+            }
+        }
+    };
+
+    // Hinder (Kaktusar)
+    let obstacles = [];
+    function spawnObstacle() {
+        if (Math.random() > 0.985 && obstacles.length < 2) {
+            let lastObstacleX = obstacles.length > 0 ? obstacles[obstacles.length - 1].x : 600;
+            if (600 - lastObstacleX > 150) {
+                obstacles.push({
+                    x: 600,
+                    y: 120,
+                    width: 15,
+                    height: 30,
+                    draw() {
+                        ctx.fillStyle = "#5f6368";
+                        ctx.fillRect(this.x, this.y, this.width, this.height);
+                        ctx.fillRect(this.x - 4, this.y + 6, 4, 12);
+                        ctx.fillRect(this.x + this.width, this.y + 10, 4, 10);
+                    }
+                });
+            }
+        }
+    }
+
+    // Inputhantering
+    function handleAction() {
+        if (isGameOver) {
+            resetGame();
+        } else {
+            dino.jump();
+            gameStarted = true;
+        }
+    }
+
+    window.addEventListener("keydown", (e) => {
+        if (e.code === "Space") {
+            e.preventDefault();
+            handleAction();
         }
     });
-    window.addEventListener('touchend', () => { mouseX = null; mouseY = null; });
+    canvas.addEventListener("click", handleAction);
+    canvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        handleAction();
+    });
 
-    function drawLightning(startX, startY, endX, endY, segments, displace) {
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        
-        let currX = startX;
-        let currY = startY;
-        
-        for (let i = 1; i <= segments; i++) {
-            let t = i / segments;
-            let targetX = startX + (endX - startX) * t;
-            let targetY = startY + (endY - startY) * t;
-            
-            if (i < segments) {
-                targetX += (Math.random() - 0.5) * displace;
-                targetY += (Math.random() - 0.5) * displace;
-            }
-            
-            ctx.lineTo(targetX, targetY);
-            currX = targetX;
-            currY = targetY;
-        }
-        ctx.stroke();
+    function resetGame() {
+        obstacles = [];
+        score = 0;
+        gameSpeed = 5;
+        isGameOver = false;
+        dino.y = 110;
+        dino.velocity = 0;
+        dino.isJumping = false;
     }
 
-    function loop() {
+    // Huvudloop
+    function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        const coreX = canvas.width / 2;
-        const coreY = canvas.height / 2;
-        const power = parseInt(slider.value);
 
-        if (power > 80) {
-            if (!isOverload) {
-                isOverload = true;
-                document.documentElement.style.setProperty('--theme-color', '#ff0055');
-                document.documentElement.style.setProperty('--theme-glow', 'rgba(255, 0, 85, 0.5)');
-                document.documentElement.style.setProperty('--bg-color', '#1c0309');
+        // Rita poäng
+        ctx.fillStyle = "#5f6368";
+        ctx.font = "14px monospace";
+        ctx.fillText(`HI ${String(highScore).padStart(5, '0')}  ${String(Math.floor(score)).padStart(5, '0')}`, 480, 25);
+
+        dino.update();
+        dino.draw();
+
+        if (gameStarted && !isGameOver) {
+            score += 0.15;
+            if (Math.floor(score) % 100 === 0 && gameSpeed < 12) {
+                gameSpeed += 0.02; // Öka farten gradvis
             }
-        } else {
-            if (isOverload) {
-                isOverload = false;
-                document.documentElement.style.setProperty('--theme-color', '#00f0ff');
-                document.documentElement.style.setProperty('--theme-glow', 'rgba(0, 240, 255, 0.4)');
-                document.documentElement.style.setProperty('--bg-color', '#060814');
-            }
-        }
 
-        ctx.shadowBlur = isOverload ? 20 : 10;
-        ctx.shadowColor = isOverload ? '#ff0055' : '#00f0ff';
+            spawnObstacle();
 
-        if (mouseX !== null && mouseY !== null) {
-            ctx.strokeStyle = isOverload ? '#ff88aa' : '#94f3ff';
-            ctx.lineWidth = Math.random() * 3 + 1;
-            drawLightning(coreX, coreY, mouseX, mouseY, 12, 35);
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 1;
-            drawLightning(coreX, coreY, mouseX, mouseY, 12, 35);
-        }
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= gameSpeed;
+                obstacles[i].draw();
 
-        let extraBlixtar = Math.floor(power / 15);
-        if (isOverload) extraBlixtar += 4;
+                // Kollisionsdetektering
+                if (
+                    dino.x < obstacles[i].x + obstacles[i].width &&
+                    dino.x + dino.width > obstacles[i].x &&
+                    dino.y < obstacles[i].y + obstacles[i].height &&
+                    dino.y + dino.height > obstacles[i].y
+                ) {
+                    isGameOver = true;
+                    if (Math.floor(score) > highScore) {
+                        highScore = Math.floor(score);
+                    }
+                }
 
-        for (let i = 0; i < extraBlixtar; i++) {
-            if (Math.random() > 0.6) {
-                let angle = Math.random() * Math.PI * 2;
-                let distance = 100 + Math.random() * (canvas.width / 2);
-                let targetX = coreX + Math.cos(angle) * distance;
-                let targetY = coreY + Math.sin(angle) * distance;
-                
-                ctx.lineWidth = Math.random() * 2;
-                ctx.strokeStyle = isOverload ? '#ff0055' : 'rgba(0, 240, 255, 0.7)';
-                drawLightning(coreX, coreY, targetX, targetY, 10, 40);
+                // Ta bort hinder utanför skärmen
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                }
             }
         }
 
-        requestAnimationFrame(loop);
+        if (isGameOver) {
+            ctx.fillStyle = "#5f6368";
+            ctx.font = "bold 16px sans-serif";
+            ctx.fillText("GAME OVER", 250, 75);
+            ctx.font = "12px sans-serif";
+            ctx.fillText("Klicka eller tryck Space för att starta om", 195, 100);
+        }
+
+        requestAnimationFrame(animate);
     }
 
-    loop();
+    animate();
 </script>
 </body>
 </html>
